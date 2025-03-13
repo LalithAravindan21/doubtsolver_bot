@@ -4,19 +4,21 @@ import wikipedia
 
 # Set your OpenAI API key
 OPENAI_API_KEY = "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"
-openai.api_key = OPENAI_API_KEY
 
 def ask_llm(question):
     """Fetches step-by-step academic answers from GPT-4."""
     prompt = f"Explain this academic question step-by-step with sources: {question}"
     
     try:
-        response = openai.ChatCompletion.create(
+        client = openai.OpenAI(api_key=OPENAI_API_KEY)  # Initialize OpenAI client
+        response = client.chat.completions.create(
             model="gpt-4",
-            messages=[{"role": "system", "content": "You are an academic tutor."},
-                      {"role": "user", "content": prompt}]
+            messages=[
+                {"role": "system", "content": "You are an academic tutor."},
+                {"role": "user", "content": prompt}
+            ]
         )
-        return response["choices"][0]["message"]["content"]
+        return response.choices[0].message.content
     except Exception as e:
         return f"Error fetching response: {str(e)}"
 
