@@ -1,33 +1,48 @@
 import streamlit as st
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
+import openai
+import wikipedia
 
-# Load the model & tokenizer
-@st.cache_resource
-def load_model():
-    model_name = "mistralai/Mistral-7B-Instruct-v0.1"  # You can change this to another model
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16, device_map="auto")
-    return model, tokenizer
+# Set your OpenAI API key
+OPENAI_API_KEY = "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"
+openai.api_key = OPENAI_API_KEY
 
-model, tokenizer = load_model()
+def ask_llm(question):
+    """Fetches step-by-step academic answers from GPT-4."""
+    prompt = f"Explain this academic question step-by-step with sources: {question}"
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "system", "content": "You are an academic tutor."},
+                      {"role": "user", "content": prompt}]
+        )
+        return response["choices"][0]["message"]["content"]
+    except Exception as e:
+        return f"Error fetching response: {str(e)}"
 
-st.title("📚 Offline Doubt Solver Bot")
-st.write("Ask any academic question, and I'll explain it step by step!")
+def get_wikipedia_summary(query):
+    """Fetches a brief summary from Wikipedia."""
+    try:
+        return wikipedia.summary(query, sentences=2)
+    except:
+        return "No Wikipedia reference found."
 
-# User input
-user_question = st.text_area("Enter your academic question:")
+# Streamlit UI
+st.set_page_config(page_title="Doubt Solver Bot", page_icon="📚", layout="centered")
+st.title("📚 Doubt Solver Bot")
+st.write("Ask your academic questions and get detailed answers!")
 
-def generate_response(question):
-    inputs = tokenizer(question, return_tensors="pt").to("cuda")
-    outputs = model.generate(**inputs, max_length=512)
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
-
+question = st.text_area("Enter your question:")
 if st.button("Solve"):
-    if not user_question.strip():
-        st.warning("⚠️ Please enter a question.")
+    if question:
+        with st.spinner("Solving your doubt..."):
+            answer = ask_llm(question)
+            source = get_wikipedia_summary(question)
+            
+            st.subheader("📖 Answer:")
+            st.write(answer)
+            
+            st.subheader("🔗 Sources:")
+            st.write(source)
     else:
-        with st.spinner("Thinking... 🤔"):
-            answer = generate_response(user_question)
-        st.subheader("📖 Explanation")
-        st.write(answer)
+        st.warning("Please enter a question.")
