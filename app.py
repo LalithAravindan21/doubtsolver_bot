@@ -1,50 +1,39 @@
+import os
 import streamlit as st
-import openai
+import google.generativeai as genai
 import wikipedia
+from dotenv import load_dotenv
 
-# Set your OpenAI API key
-OPENAI_API_KEY = "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"
+# Load API Key
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+genai.configure(api_key=GEMINI_API_KEY)
 
-def ask_llm(question):
-    """Fetches step-by-step academic answers from GPT-4."""
-    prompt = f"Explain this academic question step-by-step with sources: {question}"
-    
-    try:
-        client = openai.OpenAI(api_key=OPENAI_API_KEY)  # Initialize OpenAI client
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are an academic tutor."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        return f"Error fetching response: {str(e)}"
-
-def get_wikipedia_summary(query):
-    """Fetches a brief summary from Wikipedia."""
-    try:
-        return wikipedia.summary(query, sentences=2)
-    except:
-        return "No Wikipedia reference found."
+# Use the correct Gemini model
+MODEL_NAME = "gemini-1.5-pro-latest"  # You can also try "gemini-2.0-pro-exp"
 
 # Streamlit UI
-st.set_page_config(page_title="Doubt Solver Bot", page_icon="📚", layout="centered")
-st.title("📚 Doubt Solver Bot")
-st.write("Ask your academic questions and get detailed answers!")
+st.title("📚 Doubt Solver Bot (Gemini AI)")
+st.write("Ask any academic question and get a detailed, step-by-step solution!")
 
-question = st.text_area("Enter your question:")
-if st.button("Solve"):
-    if question:
-        with st.spinner("Solving your doubt..."):
-            answer = ask_llm(question)
-            source = get_wikipedia_summary(question)
-            
-            st.subheader("📖 Answer:")
-            st.write(answer)
-            
-            st.subheader("🔗 Sources:")
-            st.write(source)
-    else:
-        st.warning("Please enter a question.")
+# User Input
+question = st.text_input("Enter your question:")
+
+if question:
+    # Fetch Wikipedia Summary
+    try:
+        wiki_summary = wikipedia.summary(question, sentences=2)
+    except:
+        wiki_summary = "No Wikipedia data found."
+
+    # Use Gemini AI for Answer
+    model = genai.GenerativeModel(MODEL_NAME)
+    response = model.generate_content(question)
+
+    # Display Answer
+    st.subheader("📌 Step-by-Step Solution")
+    st.write(response.text)
+
+    # Show Wikipedia Summary
+    st.subheader("📖 Additional Context (Wikipedia)")
+    st.write(wiki_summary)
