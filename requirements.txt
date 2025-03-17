@@ -1,3 +1,4 @@
 streamlit
+google-generativeai
 wikipedia
---upgrade openai
+python-dotenv
